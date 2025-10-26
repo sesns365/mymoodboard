@@ -140,7 +140,7 @@
                         </div>
                         <!-- Top-Right: Yellow -->
                         <div id="wall-yellow" class="bg-yellow-50 rounded-lg p-3 space-y-3 overflow-y-auto">
-                             <h3 class="text-base font-bold text-yellow-600 sticky top-0 bg-yellow-50/80 backdrop-blur-sm py-1 -m-3 mb-1 px-3 z-10">黃色區域 (高活力, 高愉悅)</h3>
+                             <h3 class="text-base font-bold text-yellow-700 sticky top-0 bg-yellow-50/80 backdrop-blur-sm py-1 -m-3 mb-1 px-3 z-10">黃色區域 (高活力, 高愉悅)</h3>
                         </div>
                         <!-- Bottom-Left: Blue -->
                         <div id="wall-blue" class="bg-blue-50 rounded-lg p-3 space-y-3 overflow-y-auto">
@@ -267,7 +267,21 @@
 
         async function initializeFirebase() {
             try {
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                // const firebaseConfig = typeof __firebase_config__ !== 'undefined' ? JSON.parse(__firebase_config__) : null;
+                
+                // --- 已更新：使用您先前提供的 Firebase 設定 ---
+                // 注意：這將使應用程式連接到您自己的 Firebase 專案。
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCSNDp6ntjP4fWM4FvnKr_iH8PLwR4TFmM",
+                    authDomain: "mymoodapp-a042e.firebaseapp.com",
+                    projectId: "mymoodapp-a042e",
+                    storageBucket: "mymoodapp-a042e.firebasestorage.app",
+                    messagingSenderId: "149375581163",
+                    appId: "1:149375581163:web:d71aba3903c9d812d8b7ae",
+                    measurementId: "G-VQ9391988B"
+                };
+                // --- 更新結束 ---
+
                 if (!firebaseConfig) {
                     errorMessage.textContent = "無法載入 Firebase 設定。";
                     emotionForm.querySelectorAll('input, textarea, button').forEach(el => el.disabled = true);
@@ -289,7 +303,7 @@
                     }
                 });
 
-                await (typeof __initial_auth_token !== 'undefined' ? signInWithCustomToken(auth, __initial_auth_token) : signInAnonymously(auth));
+                await (typeof __initial_auth_token__ !== 'undefined' ? signInWithCustomToken(auth, __initial_auth_token__) : signInAnonymously(auth));
             } catch (error) {
                 console.error("Auth/Init Error:", error);
                 if (error.code === 'auth/operation-not-allowed') {
@@ -633,6 +647,10 @@
     </script>
 </body>
 </html>
+
+
+
+
 
 
 
