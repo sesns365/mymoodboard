@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心情儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F8FAFC;
+        }
+        @keyframes pop-in {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details summary .chevron { transition: transform 0.2s; }
+        details[open] summary .chevron { transform: rotate(90deg); }
+        .emotion-btn-group {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s ease-in-out;
+        }
+        .emotion-btn-group.visible {
+            opacity: 1;
+            max-height: 500px; /* Increased height for many options */
+        }
+        .writing-mode-vertical-rl {
+            writing-mode: vertical-rl;
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+    
+    <button id="toggle-view-btn" class="fixed top-4 left-4 z-40 bg-indigo-500 text-white rounded-full p-2 shadow-lg hover:bg-indigo-600 transition-all" title="切換視圖">
+        <!-- View Quadrant Icon -->
+        <svg id="view-quadrant-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        <!-- View Form (Pencil) Icon -->
+        <svg id="view-form-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+        </svg>
+    </button>
+
+    <div class="container mx-auto px-4 py-8">
+        <div id="main-layout-container">
+
+            <div id="input-panel">
+                <div class="space-y-8">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                        <h1 class="text-3xl font-bold text-slate-700 text-center mb-2">心情儀表板</h1>
+                        <p class="text-slate-500 text-center mb-6">你現在在哪個情緒區呢？選擇你的顏色和感受，讓我們更懂你。</p>
+                        
+                        <form id="emotion-form">
+                            <div>
+                                <label class="font-bold text-slate-600">1. 你現在在哪個情緒區？</label>
+                                <div id="zone-options" class="grid grid-cols-2 gap-3 mt-2"></div>
+                                <input type="hidden" id="zone-type-input" name="zone-type">
+                            </div>
+                            
+                            <div class="mt-4 grid md:grid-cols-2 md:gap-6 items-start">
+                                <!-- Col 1: Emotion Selection -->
+                                <div id="emotion-selection-container">
+                                    <!-- Dynamically populated -->
+                                </div>
+        
+                                <!-- Col 2: Name & Reason -->
+                                <div class="space-y-4 mt-4 md:mt-0">
+                                    <div>
+                                        <label for="student-name" class="font-bold text-slate-600">2. 你的名字/座號：</label>
+                                        <input type="text" id="student-name" class="mt-1 w-full p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="填寫你的名字或座號">
+                                    </div>
+        
+                                    <div>
+                                        <label for="reason-input" class="font-bold text-slate-600">3. 發生了什麼事？ (可以不寫)</label>
+                                        <textarea id="reason-input" rows="3" class="mt-1 w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 placeholder-slate-400" placeholder="簡單描述一下原因..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <p id="error-message" class="text-red-500 text-sm h-5 mb-2"></p>
+                                <button type="submit" class="w-full bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-600 active:scale-95 transition-transform duration-150 shadow-md hover:shadow-lg">
+                                    記錄我的心情
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="mb-12 lg:mb-0">
+                        <details class="bg-white rounded-lg shadow p-4 cursor-pointer">
+                            <summary class="font-bold text-lg text-slate-700 flex justify-between items-center">
+                                什麼是情緒四色區？
+                                <svg class="chevron w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </summary>
+                            <div id="guide-container" class="mt-4 space-y-4 border-t pt-4"></div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quadrant-panel" class="hidden relative">
+                <div class="relative flex justify-center items-center mb-6 mt-12 lg:mt-0">
+                    <h2 class="text-2xl font-bold text-center text-slate-700">大家現在的心情 ✨</h2>
+                    <button id="show-suggestions-btn" class="absolute right-0 bg-white text-teal-500 rounded-full p-2 shadow-sm hover:bg-teal-100 transition-all" title="查看情緒調節建議">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="relative mt-8">
+                    <!-- Axis labels -->
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full text-sm text-slate-500 font-medium">高度活力</div>
+                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full text-sm text-slate-500 font-medium">低度活力</div>
+                    <div class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 text-sm text-slate-500 font-medium writing-mode-vertical-rl">低度愉悅</div>
+                    <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-2 text-sm text-slate-500 font-medium writing-mode-vertical-rl">高度愉悅</div>
+
+                    <!-- Center dividing lines -->
+                    <div class="absolute top-0 left-1/2 w-0.5 h-full bg-slate-200 -z-10"></div>
+                    <div class="absolute left-0 top-1/2 h-0.5 w-full bg-slate-200 -z-10"></div>
+
+                    <div id="emotion-quadrants" class="grid grid-cols-2 grid-rows-2 gap-4" style="min-height: 80vh;">
+                        <!-- Top-Left: Red -->
+                        <div id="wall-red" class="bg-red-50 rounded-lg p-3 space-y-3 overflow-y-auto">
+                             <h3 class="text-base font-bold text-red-600 sticky top-0 bg-red-50/80 backdrop-blur-sm py-1 -m-3 mb-1 px-3 z-10">紅色區域 (高活力, 低愉悅)</h3>
+                        </div>
+                        <!-- Top-Right: Yellow -->
+                        <div id="wall-yellow" class="bg-yellow-50 rounded-lg p-3 space-y-3 overflow-y-auto">
+                             <h3 class="text-base font-bold text-yellow-600 sticky top-0 bg-yellow-50/80 backdrop-blur-sm py-1 -m-3 mb-1 px-3 z-10">黃色區域 (高活力, 高愉悅)</h3>
+                        </div>
+                        <!-- Bottom-Left: Blue -->
+                        <div id="wall-blue" class="bg-blue-50 rounded-lg p-3 space-y-3 overflow-y-auto">
+                            <h3 class="text-base font-bold text-blue-600 sticky top-0 bg-blue-50/80 backdrop-blur-sm py-1 -m-3 mb-1 px-3 z-10">藍色區域 (低活力, 低愉悅)</h3>
+                        </div>
+                        <!-- Bottom-Right: Green -->
+                        <div id="wall-green" class="bg-green-50 rounded-lg p-3 space-y-3 overflow-y-auto">
+                            <h3 class="text-base font-bold text-green-600 sticky top-0 bg-green-50/80 backdrop-blur-sm py-1 -m-3 mb-1 px-3 z-10">綠色區域 (低活力, 高愉悅)</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <div id="auth-error-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full animate-pop-in">
+             <h2 class="text-2xl font-bold text-red-600 mb-4">重要設定步驟</h2>
+            <p class="text-slate-700 mb-6">
+                您的儀表板幾乎完成了！只差最後一個步驟：<br>
+                請前往您的 Firebase 專案後台，啟用「<strong>匿名登入</strong>」功能，這樣大家才能留言喔。
+            </p>
+            <div class="bg-gray-100 p-4 rounded-md text-sm">
+                <p><strong>操作指南：</strong></p>
+                <ol class="list-decimal list-inside mt-2 space-y-1">
+                    <li>前往 Firebase Console 的 <strong>Authentication</strong> 頁面。</li>
+                    <li>點擊 <strong>Sign-in method</strong> 分頁。</li>
+                    <li>從供應商列表中點擊「<strong>匿名</strong>」。</li>
+                    <li>將開關設定為「<strong>啟用</strong>」並儲存。</li>
+                    <li><strong>重新整理</strong>本頁面。</li>
+                </ol>
+            </div>
+            <button id="close-modal-button" class="mt-6 w-full bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">我了解了</button>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full animate-pop-in">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">確認刪除</h2>
+            <p class="text-slate-600 mb-6">確定要永久刪除這則心情紀錄嗎？</p>
+            <div class="flex justify-end gap-4">
+                <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">取消</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">確定刪除</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="suggestions-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-6 max-w-4xl w-full animate-pop-in relative max-h-[90vh] overflow-y-auto">
+            <button id="close-suggestions-modal" class="absolute top-2 right-2 p-2 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-colors" title="關閉">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">我可以做什麼？</h2>
+            <div id="suggestions-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Suggestions will be populated here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-8 text-center py-6 text-slate-400 text-xs sm:text-sm">
+        <div class="container mx-auto px-4"><span>由 特工365 製作</span></div>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const emotionZones = [
+             { id: 'green', name: '綠色區域', action: 'GO', description: '感覺心平氣和，能量飽滿，準備好學習與面對挑戰。', color: 'bg-green-100 border-green-300', textColor: 'text-green-600', selectedColor: 'bg-green-500 text-white border-green-500', 
+              emotions: [ 
+                  {id: 'at-ease', name: '自在'}, {id: 'calm', name: '平靜'}, {id: 'relaxed', name: '放鬆'}, {id: 'comfortable', name: '舒服'}, {id: 'safe', name: '安全'}, 
+                  {id: 'content', name: '滿足'}, {id: 'grateful', name: '感謝'}, {id: 'touched', name: '感動'}, {id: 'peaceful', name: '平和'}, {id: 'belonging', name: '有歸屬感'},
+                  { id: 'other', name: '其他...' } ], 
+              suggestions: ['保持專注，繼續學習', '和同學分享你的好心情', '幫助身邊的同學', '享受當下的平靜時刻', '做一件你喜歡的靜態活動'] },
+            { id: 'blue', name: '藍色區域', action: 'REST', description: '感覺能量較低，情緒低落，需要休息或撫慰。', color: 'bg-blue-100 border-blue-300', textColor: 'text-blue-600', selectedColor: 'bg-blue-500 text-white border-blue-500', 
+              emotions: [ 
+                  {id: 'sad', name: '傷心'}, {id: 'upset', name: '難過'}, {id: 'disappointed', name: '失望'}, {id: 'down', name: '低落'}, {id: 'lonely', name: '孤單'}, 
+                  {id: 'bored', name: '無聊'}, {id: 'tired', name: '疲累'}, {id: 'exhausted', name: '精疲力盡'}, {id: 'frustrated', name: '挫折'}, {id: 'hopeless', name: '絕望'},
+                  { id: 'other', name: '其他...' } ], 
+              suggestions: ['找一位信任的老師或朋友聊聊', '寫下或畫出你的感受', '聽一些溫和的音樂', '做溫和的伸展運動', '給自己一段休息的時間'] },
+            { id: 'yellow', name: '黃色區域', action: 'SLOW', description: '警覺性升高，能量與情緒提升，需要放慢腳步。', color: 'bg-yellow-100 border-yellow-400', textColor: 'text-yellow-700', selectedColor: 'bg-yellow-500 text-white border-yellow-500', 
+              emotions: [ 
+                  {id: 'happy', name: '開心'}, {id: 'joyful', name: '快樂'}, {id: 'excited', name: '興奮'}, {id: 'surprised', name: '驚喜'}, {id: 'elated', name: '振奮'},
+                  {id: 'energetic', name: '有活力'}, {id: 'pleased', name: '愉悅'}, {id: 'optimistic', name: '樂觀'}, {id: 'hopeful', name: '有希望'}, {id: 'inspired', name: '受鼓舞'},
+                  { id: 'other', name: '其他...' } ], 
+              suggestions: ['把這股活力用在課堂舉手發言上', '和朋友分享有趣的事情', '投入到有挑戰性的任務中', '進行創意思考或腦力激盪', '用運動或遊戲來抒發精力'] },
+            { id: 'red', name: '紅色區域', action: 'STOP', description: '處於強烈情緒，能量飆升，需要停下來尋求幫助。', color: 'bg-red-100 border-red-300', textColor: 'text-red-600', selectedColor: 'bg-red-500 text-white border-red-500', 
+              emotions: [ 
+                  {id: 'angry', name: '生氣'}, {id: 'furious', name: '憤怒'}, {id: 'anxious', name: '焦慮'}, {id: 'nervous', name: '緊張'}, {id: 'stressed', name: '壓力大'},
+                  {id: 'frustrated', name: '沮喪'}, {id: 'scared', name: '害怕'}, {id: 'panic', name: '驚慌'}, {id: 'overwhelmed', name: '不知所措'}, {id: 'annoyed', name: '煩躁'},
+                  { id: 'other', name: '其他...' } ], 
+              suggestions: ['先停下手邊所有事', '做5次深呼吸', '喝一杯冷水，感受水的溫度', '找一個安靜的角落獨處', '向老師或信任的大人求助'] }
+        ];
+        
+        const emotionForm = document.getElementById('emotion-form');
+        const studentNameInput = document.getElementById('student-name');
+        const reasonInput = document.getElementById('reason-input');
+        const zoneTypeInput = document.getElementById('zone-type-input');
+        const emotionSelectionContainer = document.getElementById('emotion-selection-container');
+        const errorMessage = document.getElementById('error-message');
+        const guideContainer = document.getElementById('guide-container');
+        const quadrantsContainer = document.getElementById('emotion-quadrants');
+        
+        // View toggle elements
+        const toggleViewBtn = document.getElementById('toggle-view-btn');
+        const inputPanel = document.getElementById('input-panel');
+        const quadrantPanel = document.getElementById('quadrant-panel');
+        const viewQuadrantIcon = document.getElementById('view-quadrant-icon');
+        const viewFormIcon = document.getElementById('view-form-icon');
+
+        // Suggestions Modal elements
+        const suggestionsModal = document.getElementById('suggestions-modal');
+        const closeSuggestionsModalBtn = document.getElementById('close-suggestions-modal');
+        const showSuggestionsBtn = document.getElementById('show-suggestions-btn');
+        const suggestionsContainer = document.getElementById('suggestions-container');
+
+
+        let db, currentUserId = null, adminUserId = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        async function initializeFirebase() {
+            try {
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                if (!firebaseConfig) {
+                    errorMessage.textContent = "無法載入 Firebase 設定。";
+                    emotionForm.querySelectorAll('input, textarea, button').forEach(el => el.disabled = true);
+                    return;
+                }
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        await loadAdminConfig();
+                        listenForEmotions();
+                    } else {
+                        currentUserId = null;
+                        adminUserId = null;
+                    }
+                });
+
+                await (typeof __initial_auth_token !== 'undefined' ? signInWithCustomToken(auth, __initial_auth_token) : signInAnonymously(auth));
+            } catch (error) {
+                console.error("Auth/Init Error:", error);
+                if (error.code === 'auth/operation-not-allowed') {
+                    document.getElementById('auth-error-modal').classList.remove('hidden');
+                    document.getElementById('close-modal-button').addEventListener('click', () => document.getElementById('auth-error-modal').classList.add('hidden'));
+                    errorMessage.textContent = '功能已停用，請啟用匿名登入。';
+                } else {
+                    errorMessage.textContent = "登入或初始化失敗，請重新整理。";
+                }
+            }
+        }
+
+        async function loadAdminConfig() {
+            const adminConfigRef = doc(db, `/artifacts/${appId}/public/data/admin/config`);
+            const docSnap = await getDoc(adminConfigRef);
+            adminUserId = docSnap.exists() ? docSnap.data().adminUserId : null;
+        }
+
+        function listenForEmotions() {
+            const emotionsCol = collection(db, `/artifacts/${appId}/public/data/emotions`);
+            const q = query(emotionsCol);
+            
+            const wallRed = document.getElementById('wall-red');
+            const wallYellow = document.getElementById('wall-yellow');
+            const wallBlue = document.getElementById('wall-blue');
+            const wallGreen = document.getElementById('wall-green');
+
+            onSnapshot(q, (snapshot) => {
+                const emotions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                emotions.sort((a, b) => (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0));
+                
+                // Clear all quadrants but keep titles
+                wallRed.querySelectorAll('.emotion-card').forEach(c => c.remove());
+                wallYellow.querySelectorAll('.emotion-card').forEach(c => c.remove());
+                wallBlue.querySelectorAll('.emotion-card').forEach(c => c.remove());
+                wallGreen.querySelectorAll('.emotion-card').forEach(c => c.remove());
+
+                emotions.forEach(data => {
+                    const card = createEmotionCard(data, false);
+                    if (card) {
+                        switch(data.zone) {
+                            case 'red': wallRed.appendChild(card); break;
+                            case 'yellow': wallYellow.appendChild(card); break;
+                            case 'blue': wallBlue.appendChild(card); break;
+                            case 'green': wallGreen.appendChild(card); break;
+                        }
+                    }
+                });
+            }, (error) => {
+                console.error("Firestore Snapshot Error:", error);
+                errorMessage.textContent = "無法讀取情緒資料。";
+            });
+        }
+
+        function initializeUI() {
+            const zoneOptionsContainer = document.getElementById('zone-options');
+            emotionZones.forEach(zone => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.id = zone.id;
+                button.className = `p-3 rounded-lg border-2 font-bold text-lg transition-all duration-200 flex flex-col items-center justify-center gap-2 ${zone.color} ${zone.textColor}`;
+                button.innerHTML = `<span>${zone.name}</span> <span class="text-xs font-bold px-2 py-0.5 rounded-full ${zone.selectedColor.split(' ')[0]} text-white">${zone.action}</span>`;
+                zoneOptionsContainer.appendChild(button);
+
+                const guideDiv = document.createElement('div');
+                guideDiv.className = `p-3 rounded-md ${zone.color} flex justify-between items-start gap-2`;
+                guideDiv.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-bold ${zone.textColor}">${zone.name} (${zone.action})</p>
+                        <p class="text-slate-600 mt-1 guide-description">${zone.description}</p>
+                        <div class="mt-3 pt-3 border-t border-slate-200/80">
+                            <p class="font-semibold text-sm ${zone.textColor} mb-2">我可以做什麼？</p>
+                            <ul class="text-slate-600 text-sm list-disc list-inside space-y-1">
+                                ${zone.suggestions.map(s => `<li>${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    <button title="朗讀說明" class="read-aloud-guide-btn flex-shrink-0 p-2 rounded-full hover:bg-white/50 active:bg-white/70 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ${zone.textColor} pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                    </button>
+                `;
+                guideContainer.appendChild(guideDiv);
+            });
+        }
+        
+        document.getElementById('zone-options').addEventListener('click', e => {
+            const button = e.target.closest('button');
+            if (!button) return;
+            const selectedZoneId = button.dataset.id;
+            const selectedZone = emotionZones.find(z => z.id === selectedZoneId);
+
+            zoneTypeInput.value = selectedZoneId;
+            document.querySelectorAll('#zone-options button').forEach(btn => {
+                const zone = emotionZones.find(z => z.id === btn.dataset.id);
+                btn.className = `p-3 rounded-lg border-2 font-bold text-lg transition-all duration-200 flex flex-col items-center justify-center gap-2 ${btn.dataset.id === selectedZoneId ? zone.selectedColor : zone.color + ' ' + zone.textColor}`;
+            });
+            emotionSelectionContainer.innerHTML = `
+                <label class="font-bold text-slate-600 block">1b. 你的感受比較接近？</label>
+                <div class="emotion-btn-group grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                    ${selectedZone.emotions.map(emo => `<button type="button" data-id="${emo.id}" class="emotion-btn p-2 rounded-md border-2 font-semibold transition-colors duration-200 ${selectedZone.color} ${selectedZone.textColor}">${emo.name}</button>`).join('')}
+                </div>
+                <div id="custom-emotion-wrapper" class="hidden mt-2">
+                    <input type="text" id="custom-emotion-input" class="w-full p-2 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500" placeholder="請填寫你的感受...">
+                </div>
+                <input type="hidden" id="emotion-type-input" name="emotion-type">`;
+            setTimeout(() => { emotionSelectionContainer.querySelector('.emotion-btn-group')?.classList.add('visible'); }, 10);
+        });
+        
+        emotionSelectionContainer.addEventListener('click', e => {
+            const button = e.target.closest('.emotion-btn');
+            if (!button) return;
+            const selectedEmotionId = button.dataset.id;
+            document.getElementById('emotion-type-input').value = selectedEmotionId;
+            const zone = emotionZones.find(z => z.id === zoneTypeInput.value);
+            document.querySelectorAll('.emotion-btn').forEach(btn => {
+                btn.className = `emotion-btn p-2 rounded-md border-2 font-semibold transition-colors duration-200 ${btn.dataset.id === selectedEmotionId ? zone.selectedColor : zone.color + ' ' + zone.textColor}`;
+            });
+            const customWrapper = document.getElementById('custom-emotion-wrapper');
+            if (selectedEmotionId === 'other') {
+                customWrapper.classList.remove('hidden');
+                document.getElementById('custom-emotion-input').focus();
+            } else {
+                customWrapper.classList.add('hidden');
+                readAloud(button.textContent.trim());
+            }
+        });
+
+        function createEmotionCard(data, isNew) {
+            const zone = emotionZones.find(z => z.id === data.zone);
+            if (!zone) return null;
+
+            const emotion = zone.emotions.find(e => e.id === data.emotion);
+            const emotionDisplayName = data.emotion === 'other' ? data.customEmotion : emotion?.name;
+            if (!emotionDisplayName) return null;
+
+            const canDelete = data.creatorId === currentUserId || (currentUserId === adminUserId && adminUserId !== null);
+            const card = document.createElement('div');
+            card.className = `emotion-card rounded-xl shadow-lg overflow-hidden border-t-4 ${isNew ? 'animate-pop-in' : ''}`;
+            card.style.borderColor = zone.selectedColor.split(' ')[0].includes('red') ? '#ef4444' : zone.selectedColor.split(' ')[0].includes('yellow') ? '#f59e0b' : zone.selectedColor.split(' ')[0].includes('blue') ? '#3b82f6' : '#22c55e';
+
+            const fromName = data.name.trim() === '' ? '一位同學' : data.name;
+            const dateString = data.createdAt?.toDate()?.toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) || new Date().toLocaleDateString('zh-TW');
+
+            card.innerHTML = `
+                <div class="p-3 bg-white space-y-2 relative">
+                     ${canDelete ? `<button data-doc-id="${data.id}" class="delete-button absolute top-1 right-1 p-1.5 rounded-full text-slate-300 hover:bg-red-100 hover:text-red-500 transition-colors" title="刪除">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>` : ''}
+                    <div class="flex items-center gap-2">
+                         <span class="text-xl font-bold p-2 rounded-md ${zone.color} ${zone.textColor}">${emotionDisplayName}</span>
+                         <div><p class="text-base font-bold text-slate-800">${fromName}</p><p class="text-xs text-slate-500">正在 <span class="font-bold ${zone.textColor}">${zone.name}</span></p></div>
+                    </div>
+                    ${data.reason ? `<p class="text-sm text-slate-600 pt-2 border-t mt-2">“${data.reason}”</p>` : ''}
+                    <div class="flex justify-between items-center mt-1">
+                        <p class="text-xs text-slate-400">${dateString}</p>
+                        <button class="read-aloud-card-btn p-1.5 rounded-full text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 transition-colors" title="朗讀此心情"
+                            data-name="${fromName}" data-zone-name="${zone.name}" data-emotion-name="${emotionDisplayName}" data-reason="${data.reason || ''}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                        </button>
+                    </div>
+                </div>`;
+            return card;
+        }
+
+        emotionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.textContent = '';
+            
+            const emotionTypeInput = document.getElementById('emotion-type-input');
+            const emotionData = {
+                creatorId: currentUserId,
+                zone: zoneTypeInput.value,
+                emotion: emotionTypeInput ? emotionTypeInput.value : null,
+                name: studentNameInput.value.trim(),
+                reason: reasonInput.value.trim(),
+            };
+
+            if (!emotionData.creatorId) { errorMessage.textContent = '無法驗證您的身分，請重新整理。'; return; }
+            if (!emotionData.zone) { errorMessage.textContent = '請選擇一個情緒區域！'; return; }
+            if (!emotionData.emotion) { errorMessage.textContent = '請選擇一個具體感受！'; return; }
+            if (!emotionData.name) { errorMessage.textContent = '請填寫你的名字！'; return; }
+
+            if (emotionData.emotion === 'other') {
+                const customEmotionValue = document.getElementById('custom-emotion-input')?.value.trim();
+                if (!customEmotionValue) { errorMessage.textContent = '請填寫「其他」感受！'; return; }
+                emotionData.customEmotion = customEmotionValue;
+            }
+            
+            try {
+                // 成為管理員的邏輯
+                if (!adminUserId) {
+                    const adminConfigRef = doc(db, `/artifacts/${appId}/public/data/admin/config`);
+                    const adminDocSnap = await getDoc(adminConfigRef);
+                    if (!adminDocSnap.exists()) {
+                        await setDoc(adminConfigRef, { adminUserId: currentUserId, createdAt: Timestamp.now() });
+                        adminUserId = currentUserId; 
+                    }
+                }
+
+                await addDoc(collection(db, `/artifacts/${appId}/public/data/emotions`), { ...emotionData, createdAt: Timestamp.now() });
+
+                emotionForm.reset();
+                zoneTypeInput.value = '';
+                emotionSelectionContainer.innerHTML = '';
+                document.querySelectorAll('#zone-options button').forEach(btn => {
+                    const zone = emotionZones.find(z => z.id === btn.dataset.id);
+                    btn.className = `p-3 rounded-lg border-2 font-bold text-lg transition-all duration-200 flex flex-col items-center justify-center gap-2 ${zone.color} ${zone.textColor}`;
+                });
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                errorMessage.textContent = '送出失敗，請稍後再試。';
+            }
+        });
+
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        let deleteResolver = null;
+
+        function showConfirmationModal() {
+            return new Promise((resolve) => {
+                deleteResolver = resolve;
+                deleteConfirmModal.classList.remove('hidden');
+            });
+        }
+        confirmDeleteBtn.addEventListener('click', () => { if (deleteResolver) deleteResolver(true); deleteConfirmModal.classList.add('hidden'); });
+        cancelDeleteBtn.addEventListener('click', () => { if (deleteResolver) deleteResolver(false); deleteConfirmModal.classList.add('hidden'); });
+        
+        function readAloud(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-TW';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.warn('Browser does not support Speech Synthesis.');
+            }
+        }
+        
+        quadrantsContainer.addEventListener('click', async (e) => {
+            const deleteButton = e.target.closest('.delete-button');
+            if (deleteButton) {
+                const docId = deleteButton.dataset.docId;
+                const confirmed = await showConfirmationModal();
+                if (confirmed) {
+                    try {
+                        await deleteDoc(doc(db, `/artifacts/${appId}/public/data/emotions`, docId));
+                    } catch (error) {
+                        console.error("Error deleting document:", error);
+                        alert("刪除失敗！");
+                    }
+                }
+                return;
+            }
+
+            const readAloudButton = e.target.closest('.read-aloud-card-btn');
+            if (readAloudButton) {
+                const { name, zoneName, emotionName, reason } = readAloudButton.dataset;
+                let textToRead = `${name} 正在 ${zoneName}，感覺 ${emotionName}。`;
+                if (reason) textToRead += `因為：${reason}`;
+                readAloud(textToRead);
+            }
+        });
+
+        guideContainer.addEventListener('click', e => {
+            const readAloudButton = e.target.closest('.read-aloud-guide-btn');
+            if (readAloudButton) {
+                const container = readAloudButton.closest('.p-3');
+                const titleText = container.querySelector('.font-bold')?.textContent.trim() || '';
+                const descriptionText = container.querySelector('.guide-description')?.textContent.trim() || '';
+                const suggestionsTitle = container.querySelector('.font-semibold')?.textContent.trim() || '';
+                const suggestions = Array.from(container.querySelectorAll('ul li')).map(li => li.textContent).join('，');
+                
+                let textToRead = `${titleText}。${descriptionText}`;
+                if(suggestionsTitle && suggestions) {
+                    textToRead += `。 ${suggestionsTitle}： ${suggestions}`;
+                }
+                readAloud(textToRead);
+            }
+        });
+        
+        toggleViewBtn.addEventListener('click', () => {
+            inputPanel.classList.toggle('hidden');
+            quadrantPanel.classList.toggle('hidden');
+            viewQuadrantIcon.classList.toggle('hidden');
+            viewFormIcon.classList.toggle('hidden');
+        });
+
+        function populateSuggestionsModal() {
+            suggestionsContainer.innerHTML = '';
+            emotionZones.forEach(zone => {
+                const zoneDiv = document.createElement('div');
+                zoneDiv.className = `p-4 rounded-lg ${zone.color}`;
+                zoneDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="font-bold text-lg ${zone.textColor}">${zone.name}</h3>
+                        <button title="朗讀建議" class="read-aloud-suggestion-btn p-2 rounded-full hover:bg-white/50 active:bg-white/70 transition-colors" data-zone-id="${zone.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ${zone.textColor} pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-3">${zone.action}</p>
+                    <ul class="text-slate-700 text-sm list-disc list-inside space-y-1">
+                        ${zone.suggestions.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                `;
+                suggestionsContainer.appendChild(zoneDiv);
+            });
+        }
+
+        showSuggestionsBtn.addEventListener('click', () => {
+            populateSuggestionsModal();
+            suggestionsModal.classList.remove('hidden');
+        });
+
+        closeSuggestionsModalBtn.addEventListener('click', () => {
+            suggestionsModal.classList.add('hidden');
+        });
+
+        suggestionsModal.addEventListener('click', e => {
+            const readAloudButton = e.target.closest('.read-aloud-suggestion-btn');
+            if(readAloudButton){
+                const zoneId = readAloudButton.dataset.zoneId;
+                const zone = emotionZones.find(z => z.id === zoneId);
+                if(zone) {
+                    const textToRead = `在${zone.name}，你可以： ` + zone.suggestions.join('，');
+                    readAloud(textToRead);
+                }
+            }
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeUI();
+            initializeFirebase();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
